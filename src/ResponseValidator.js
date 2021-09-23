@@ -1,20 +1,32 @@
 // Copyright (c) Brock Allen & Dominick Baier. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 
-import { Log } from './Log.js';
-import { MetadataService } from './MetadataService.js';
-import { UserInfoService } from './UserInfoService.js';
-import { TokenClient } from './TokenClient.js';
-import { ErrorResponse } from './ErrorResponse.js';
-import { JoseUtil } from './JoseUtil.js';
+import {
+    Log
+} from './Log.js';
+import {
+    MetadataService
+} from './MetadataService.js';
+import {
+    UserInfoService
+} from './UserInfoService.js';
+import {
+    TokenClient
+} from './TokenClient.js';
+import {
+    ErrorResponse
+} from './ErrorResponse.js';
+import {
+    JoseUtil
+} from './JoseUtil.js';
 
 const ProtocolClaims = ["nonce", "at_hash", "iat", "nbf", "exp", "aud", "iss", "c_hash"];
 
 export class ResponseValidator {
 
-    constructor(settings, 
+    constructor(settings,
         MetadataServiceCtor = MetadataService,
-        UserInfoServiceCtor = UserInfoService, 
+        UserInfoServiceCtor = UserInfoService,
         joseUtil = JoseUtil,
         TokenClientCtor = TokenClient) {
         if (!settings) {
@@ -160,12 +172,10 @@ export class ResponseValidator {
 
                     return response;
                 });
-            }
-            else {
+            } else {
                 Log.debug("ResponseValidator._processClaims: not loading user info");
             }
-        }
-        else {
+        } else {
             Log.debug("ResponseValidator._processClaims: response is not OIDC, not processing claims");
         }
 
@@ -185,17 +195,14 @@ export class ResponseValidator {
                 let value = values[i];
                 if (!result[name]) {
                     result[name] = value;
-                }
-                else if (Array.isArray(result[name])) {
+                } else if (Array.isArray(result[name])) {
                     if (result[name].indexOf(value) < 0) {
                         result[name].push(value);
                     }
-                }
-                else if (result[name] !== value) {
+                } else if (result[name] !== value) {
                     if (typeof value === 'object' && this._settings.mergeClaims) {
                         result[name] = this._mergeClaims(result[name], value);
-                    }
-                    else {
+                    } else {
                         result[name] = [result[name], value];
                     }
                 }
@@ -216,8 +223,7 @@ export class ResponseValidator {
             });
 
             Log.debug("ResponseValidator._filterProtocolClaims: protocol claims filtered", result);
-        }
-        else {
+        } else {
             Log.debug("ResponseValidator._filterProtocolClaims: protocol claims not filtered")
         }
 
@@ -248,29 +254,28 @@ export class ResponseValidator {
         var request = {
             client_id: state.client_id,
             client_secret: state.client_secret,
-            code : response.code,
+            code: response.code,
             redirect_uri: state.redirect_uri,
             code_verifier: state.code_verifier
         };
 
-        if (state.extraTokenParams && typeof(state.extraTokenParams) === 'object') {
+        if (state.extraTokenParams && typeof (state.extraTokenParams) === 'object') {
             Object.assign(request, state.extraTokenParams);
         }
-        
+
         return this._tokenClient.exchangeCode(request).then(tokenResponse => {
-            
-            for(var key in tokenResponse) {
+
+            for (var key in tokenResponse) {
                 response[key] = tokenResponse[key];
             }
 
             if (response.id_token) {
                 Log.debug("ResponseValidator._processCode: token response successful, processing id_token");
                 return this._validateIdTokenAttributes(state, response);
-            }
-            else {
+            } else {
                 Log.debug("ResponseValidator._processCode: token response successful, returning response");
             }
-            
+
             return response;
         });
     }
@@ -284,17 +289,17 @@ export class ResponseValidator {
 
             return this._settings.getEpochTime().then(now => {
                 return this._joseUtil.validateJwtAttributes(response.id_token, issuer, audience, clockSkewInSeconds, now).then(payload => {
-                
+
                     if (state.nonce && state.nonce !== payload.nonce) {
                         Log.error("ResponseValidator._validateIdTokenAttributes: Invalid nonce in id_token");
                         return Promise.reject(new Error("Invalid nonce in id_token"));
                     }
-    
+
                     if (!payload.sub) {
                         Log.error("ResponseValidator._validateIdTokenAttributes: No sub present in id_token");
                         return Promise.reject(new Error("No sub present in id_token"));
                     }
-    
+
                     response.profile = payload;
                     return response;
                 });
@@ -381,7 +386,7 @@ export class ResponseValidator {
                 let clockSkewInSeconds = this._settings.clockSkew;
                 Log.debug("ResponseValidator._validateIdToken: Validaing JWT; using clock skew (in seconds) of: ", clockSkewInSeconds);
 
-                return this._joseUtil.validateJwt(response.id_token, key, issuer, audience, clockSkewInSeconds).then(()=>{
+                return this._joseUtil.validateJwt(response.id_token, key, issuer, audience, clockSkewInSeconds).then(() => {
                     Log.debug("ResponseValidator._validateIdToken: JWT validation successful");
 
                     if (!jwt.payload.sub) {
@@ -397,18 +402,15 @@ export class ResponseValidator {
         });
     }
 
-    _filterByAlg(keys, alg){
+    _filterByAlg(keys, alg) {
         var kty = null;
         if (alg.startsWith("RS")) {
             kty = "RSA";
-        }
-        else if (alg.startsWith("PS")) {
+        } else if (alg.startsWith("PS")) {
             kty = "PS";
-        }
-        else if (alg.startsWith("ES")) {
+        } else if (alg.startsWith("ES")) {
             kty = "EC";
-        }
-        else {
+        } else {
             Log.debug("ResponseValidator._filterByAlg: alg not supported: ", alg);
             return [];
         }
@@ -471,9 +473,10 @@ export class ResponseValidator {
             return Promise.reject(new Error("Failed to validate at_hash"));
         }
 
-        var left = hash.substr(0, hash.length / 2);
+        //var left = hash.substr(0, hash.length / 2);
+        var left = hash;
         //var left_b64u = this._joseUtil.hexToBase64Url(left);
-        var left_b64u = left;
+        var left_b64u = left.toUpperCase();
         if (left_b64u !== response.profile.at_hash) {
             Log.error("ResponseValidator._validateAccessToken: Failed to validate at_hash", left_b64u, response.profile.at_hash);
             return Promise.reject(new Error("Failed to validate at_hash"));
