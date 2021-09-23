@@ -472,7 +472,8 @@ export class ResponseValidator {
         }
 
         var left = hash.substr(0, hash.length / 2);
-        var left_b64u = this._joseUtil.hexToBase64Url(left);
+        //var left_b64u = this._joseUtil.hexToBase64Url(left);
+        var left_b64u = left;
         if (left_b64u !== response.profile.at_hash) {
             Log.error("ResponseValidator._validateAccessToken: Failed to validate at_hash", left_b64u, response.profile.at_hash);
             return Promise.reject(new Error("Failed to validate at_hash"));
